@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <format>
+#include <chrono>
 
 #include "Renderer.h"
 #include "VertexBuffer.h"
@@ -53,8 +54,6 @@ static unsigned int CompileShader(unsigned int type, const std::string& source) 
     return id;
 }
 
-
-
 int main() {
     // Initialize GLFW
     if (!glfwInit()) {
@@ -93,21 +92,48 @@ int main() {
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     
-
     std::cout << "GLFW Version: " << glfwGetVersionString() << std::endl;
     std::cout << "GLAD Version: " << GLVersion.major << "." << GLVersion.minor << std::endl;
 
     {
         float positions[] = {
-             -50.0f, -50.0f,    0.0f, 0.0f,
-              50.0f, -50.0f,    1.0f, 0.0f,
-              50.0f,  50.0f,    1.0f, 1.0f,
-             -50.0f,  50.0f,    0.0f, 1.0f,
+            // Front face
+            -50.0f, -50.0f,  50.0f, 0.0f, 0.0f,
+             50.0f, -50.0f,  50.0f, 1.0f, 0.0f,
+             50.0f,  50.0f,  50.0f, 1.0f, 1.0f,
+            -50.0f,  50.0f,  50.0f, 0.0f, 1.0f,
+
+            // Back face
+            -50.0f, -50.0f, -50.0f, 0.0f, 0.0f,
+             50.0f, -50.0f, -50.0f, 1.0f, 0.0f,
+             50.0f,  50.0f, -50.0f, 1.0f, 1.0f,
+            -50.0f,  50.0f, -50.0f, 0.0f, 1.0f,
         };
 
         unsigned int indices[] = {
+            // Front face
             0, 1, 2,
-            2, 3, 0
+            2, 3, 0,
+
+            // Back face
+            4, 5, 6,
+            6, 7, 4,
+
+            // Left face
+            4, 0, 3,
+            3, 7, 4,
+
+            // Right face
+            1, 5, 6,
+            6, 2, 1,
+
+            // Top face
+            3, 2, 6,
+            6, 7, 3,
+
+            // Bottom face
+            4, 5, 1,
+            1, 0, 4
         };
 
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -120,25 +146,17 @@ int main() {
         VertexArray va;
         VertexBuffer vb(positions, sizeof(positions));
         VertexBufferLayout layout;
-        layout.Push<float>(2); // position
+        layout.Push<float>(3); // position
         layout.Push<float>(2); // texture
         va.AddBuffer(vb, layout);
 
-        IndexBuffer ib(indices, 6);
+        IndexBuffer ib(indices, 36);
 
         const std::string vertexShaderPath = std::format("{}/res/shaders/Vertex.shader", PROJECT_SOURCE_DIR);
         const std::string fragmentShaderPath = std::format("{}/res/shaders/Fragment.shader", PROJECT_SOURCE_DIR);
         Shader shader(vertexShaderPath, fragmentShaderPath);
         shader.Bind();
         shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
-
-        glm::mat4 proj = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, -1.0f, 1.0f);
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-        glm::mat4 modelB = glm::translate(glm::mat4(1.0f), glm::vec3(400.0f, 300.0f, 0));
-        glm::mat4 mvp = proj * view * model;
-
-        shader.SetUniformMat4f("u_MVP", mvp);
 
         Texture texture(std::format("{}/res/textures/texture.png", PROJECT_SOURCE_DIR));
         shader.Bind();
@@ -154,8 +172,105 @@ int main() {
 
         float r = 0.0f;
         float increment = 0.01f;
+        double lastX = 400, lastY = 300; // Initial mouse position
+        bool firstMouse = true;
+        float yaw = -90.0f, pitch = 0.0f; // Initial orientation
+
+        auto startTime = std::chrono::high_resolution_clock::now();
+
+        const glm::mat4 proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10000.0f);
+
+        const float radius = 500.0f; // Radius of the sphere
+        const glm::vec3 home_eye = glm::vec3(0.0f, 0.0f, 500.0f);
+        const glm::vec3 home_front = glm::vec3(0.0f, 0.0f, -1.0f);
+        const glm::vec3 home_center = home_eye + home_front * radius;
+        const glm::vec3 home_up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+        glm::vec3 eye = home_eye;
+        glm::vec3 current_center = home_center;
+        glm::vec3 front = home_front;
+        glm::vec3 up = home_up;
+
+        glm::mat4 view = glm::lookAt(eye, current_center, up);
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+        glm::mat4 modelB = glm::translate(glm::mat4(1.0f), glm::vec3(400.0f, 300.0f, 0));
+        glm::mat4 mvp = proj * view * model;
+
         // Render loop
         while (!glfwWindowShouldClose(window)) {
+
+            glfwPollEvents(); // Process events
+
+            // Check if any keys are pressed
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+                glfwSetWindowShouldClose(window, true);
+            }
+
+            // Mouse dragging for rotation
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                double xpos, ypos;
+                glfwGetCursorPos(window, &xpos, &ypos);
+
+                if (firstMouse) {
+                    lastX = xpos;
+                    lastY = ypos;
+                    firstMouse = false;
+                }
+
+                float xoffset = xpos - lastX;
+                float yoffset = ypos - lastY; // Corrected: y-coordinates should not be reversed
+                lastX = xpos;
+                lastY = ypos;
+
+                float sensitivity = 0.1f;
+                xoffset *= sensitivity;
+                yoffset *= sensitivity;
+
+                yaw += xoffset;
+                pitch -= yoffset; // Corrected: subtract yoffset to match typical camera pitch control
+
+                if (pitch > 89.0f)
+                    pitch = 89.0f;
+                if (pitch < -89.0f)
+                    pitch = -89.0f;
+
+                front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+                front.y = sin(glm::radians(pitch));
+                front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+                
+            } else {
+                firstMouse = true; // Reset firstMouse when not dragging
+            }
+            float movement_speed = 1.0f;
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                eye += front * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                eye -= front * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                eye -= glm::normalize(glm::cross(front, up)) * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                eye += glm::normalize(glm::cross(front, up)) * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                eye += up * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                eye -= up * movement_speed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
+                eye = home_eye;
+                current_center = home_center;
+                front = home_front;
+                up = home_up;
+                yaw = -90.0f;
+                pitch = 0.0f;
+            }
+            current_center = eye + radius * glm::normalize(front); // Keep current_center on the sphere
+            view = glm::lookAt(eye, current_center, up);
+
             renderer.Clear();
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -164,16 +279,21 @@ int main() {
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
 
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            float time = std::chrono::duration<float>(currentTime - startTime).count();
+
+            model = glm::rotate(glm::mat4(1.0f), time, glm::vec3(0.0f, 1.0f, 0.0f));
+            modelB = glm::rotate(glm::mat4(1.0f), time, glm::vec3(1.0f, 0.0f, 0.0f));
+
             mvp = proj * view * model;
             shader.SetUniformMat4f("u_MVP", mvp);
             renderer.Draw(va, ib, shader);
 
             mvp = proj * view * modelB;
             shader.SetUniformMat4f("u_MVP", mvp);
-            renderer.Draw(va, ib, shader);
+            // renderer.Draw(va, ib, shader);
 
             if (r > 1.0f) {
-
                 increment = -0.01f;
             } else if (r < 0.0f) {
                 increment = 0.01f;
