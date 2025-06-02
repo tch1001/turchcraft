@@ -97,17 +97,17 @@ int main() {
 
     {
         float positions[] = {
-            // Front face
-            -50.0f, -50.0f,  50.0f, 0.0f, 0.0f,
-             50.0f, -50.0f,  50.0f, 1.0f, 0.0f,
-             50.0f,  50.0f,  50.0f, 1.0f, 1.0f,
-            -50.0f,  50.0f,  50.0f, 0.0f, 1.0f,
+            // Front face               // Texture coordinates      // vertex Color
+            -50.0f, -50.0f,  50.0f,     0.0f, 0.0f,                 0.0f, 0.0f, 0.0f,
+             50.0f, -50.0f,  50.0f,     1.0f, 0.0f,                 0.0f, 0.0f, 1.0f,
+             50.0f,  50.0f,  50.0f,     1.0f, 1.0f,                 0.0f, 1.0f, 0.0f,
+            -50.0f,  50.0f,  50.0f,     0.0f, 1.0f,                 0.0f, 1.0f, 1.0f,
 
             // Back face
-            -50.0f, -50.0f, -50.0f, 0.0f, 0.0f,
-             50.0f, -50.0f, -50.0f, 1.0f, 0.0f,
-             50.0f,  50.0f, -50.0f, 1.0f, 1.0f,
-            -50.0f,  50.0f, -50.0f, 0.0f, 1.0f,
+            -50.0f, -50.0f, -50.0f,     0.0f, 0.0f,                 1.0f, 0.0f, 0.0f,
+             50.0f, -50.0f, -50.0f,     1.0f, 0.0f,                 1.0f, 0.0f, 1.0f,
+             50.0f,  50.0f, -50.0f,     1.0f, 1.0f,                 1.0f, 1.0f, 0.0f,
+            -50.0f,  50.0f, -50.0f,     0.0f, 1.0f,                 1.0f, 1.0f, 1.0f,
         };
 
         unsigned int indices[] = {
@@ -148,6 +148,7 @@ int main() {
         VertexBufferLayout layout;
         layout.Push<float>(3); // position
         layout.Push<float>(2); // texture
+        layout.Push<float>(3); // color
         va.AddBuffer(vb, layout);
 
         IndexBuffer ib(indices, 36);
