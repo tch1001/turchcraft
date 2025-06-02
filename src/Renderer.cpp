@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include "glm/ext/matrix_transform.hpp"
+
 void GLClearError() {
     while (glGetError() != GL_NO_ERROR);
 }
@@ -22,4 +24,13 @@ void Renderer::Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& 
     ib.Bind();
 
     GLCall(glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr));
+}
+
+void Renderer::Draw(const Cube& c, Shader& shader, const glm::mat4& proj, const glm::mat4& view) {
+    glm::mat4 model = c.GetModelMatrix();
+
+    glm::mat4 mvp = proj * view * model;
+    shader.Bind();
+    shader.SetUniformMat4f("u_MVP", mvp);
+    c.Draw();
 }

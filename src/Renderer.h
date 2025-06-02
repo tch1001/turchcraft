@@ -10,6 +10,7 @@
 #include "VertexArray.h"
 #include "IndexBuffer.h"
 #include "Shader.h"
+#include "Cube.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
@@ -23,6 +24,7 @@ class Renderer {
 public:
     void Clear() const;
     void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader) const;
+    void Draw(const Cube& c, Shader& shader, const glm::mat4& proj, const glm::mat4& view);
 };
 
 

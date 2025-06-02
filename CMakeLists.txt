@@ -19,6 +19,7 @@ add_executable(OpenGL_GLFW_Sample
     src/Shader.cpp
     src/Texture.cpp
     src/vendor/stb_image/stb_image.cpp
+    src/Cube.cpp
     ${IMGUI_SOURCES}
     src/main.cpp
 )

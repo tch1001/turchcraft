@@ -7,11 +7,8 @@
 #include <format>
 #include <chrono>
 
+#include "Cube.h"
 #include "Renderer.h"
-#include "VertexBuffer.h"
-#include "IndexBuffer.h"
-#include "VertexArray.h"
-#include "VertexBufferLayout.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "glm/glm.hpp"
@@ -19,6 +16,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
 
 static std::string ParseShader(const std::string& path) {
     std::ifstream stream(path);
@@ -66,7 +66,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL Triangle", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL Triangle", NULL, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -88,98 +88,47 @@ int main() {
         return -1;
     }
 
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
     // Set the viewport
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     
     std::cout << "GLFW Version: " << glfwGetVersionString() << std::endl;
     std::cout << "GLAD Version: " << GLVersion.major << "." << GLVersion.minor << std::endl;
 
     {
-        float positions[] = {
-            // Front face               // Texture coordinates      // vertex Color
-            -50.0f, -50.0f,  50.0f,     0.0f, 0.0f,                 0.0f, 0.0f, 0.0f,
-             50.0f, -50.0f,  50.0f,     1.0f, 0.0f,                 0.0f, 0.0f, 1.0f,
-             50.0f,  50.0f,  50.0f,     1.0f, 1.0f,                 0.0f, 1.0f, 0.0f,
-            -50.0f,  50.0f,  50.0f,     0.0f, 1.0f,                 0.0f, 1.0f, 1.0f,
-
-            // Back face
-            -50.0f, -50.0f, -50.0f,     0.0f, 0.0f,                 1.0f, 0.0f, 0.0f,
-             50.0f, -50.0f, -50.0f,     1.0f, 0.0f,                 1.0f, 0.0f, 1.0f,
-             50.0f,  50.0f, -50.0f,     1.0f, 1.0f,                 1.0f, 1.0f, 0.0f,
-            -50.0f,  50.0f, -50.0f,     0.0f, 1.0f,                 1.0f, 1.0f, 1.0f,
-        };
-
-        unsigned int indices[] = {
-            // Front face
-            0, 1, 2,
-            2, 3, 0,
-
-            // Back face
-            4, 5, 6,
-            6, 7, 4,
-
-            // Left face
-            4, 0, 3,
-            3, 7, 4,
-
-            // Right face
-            1, 5, 6,
-            6, 2, 1,
-
-            // Top face
-            3, 2, 6,
-            6, 7, 3,
-
-            // Bottom face
-            4, 5, 1,
-            1, 0, 4
-        };
-
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
         GLCall(glEnable(GL_BLEND));
 
-        unsigned int vao;
-        GLCall(glGenVertexArrays(1, &vao));
-        GLCall(glBindVertexArray(vao));
+        Cube cube{}, cube2{};
+        cube.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+        cube.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 
-        VertexArray va;
-        VertexBuffer vb(positions, sizeof(positions));
-        VertexBufferLayout layout;
-        layout.Push<float>(3); // position
-        layout.Push<float>(2); // texture
-        layout.Push<float>(3); // color
-        va.AddBuffer(vb, layout);
-
-        IndexBuffer ib(indices, 36);
-
+        cube2.SetPosition(glm::vec3(0.0f, 100.0f, 0.0f));
+        cube2.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
         const std::string vertexShaderPath = std::format("{}/res/shaders/Vertex.shader", PROJECT_SOURCE_DIR);
         const std::string fragmentShaderPath = std::format("{}/res/shaders/Fragment.shader", PROJECT_SOURCE_DIR);
         Shader shader(vertexShaderPath, fragmentShaderPath);
-        shader.Bind();
-        shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
 
         Texture texture(std::format("{}/res/textures/texture.png", PROJECT_SOURCE_DIR));
         shader.Bind();
         texture.Bind();
         shader.SetUniform1i("u_Texture", 0);
 
-        va.Unbind();
-        vb.Unbind();
-        ib.Unbind();
-        shader.Unbind();
-
         Renderer renderer;
 
         float r = 0.0f;
         float increment = 0.01f;
-        double lastX = 400, lastY = 300; // Initial mouse position
+        double lastX = WINDOW_WIDTH / 2.0, lastY = WINDOW_HEIGHT / 2.0; // Initial mouse position
         bool firstMouse = true;
         float yaw = -90.0f, pitch = 0.0f; // Initial orientation
 
         auto startTime = std::chrono::high_resolution_clock::now();
 
-        const glm::mat4 proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10000.0f);
+        const glm::mat4 proj = glm::perspective(glm::radians(45.0f), static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT, 0.1f, 10000.0f);
 
         const float radius = 500.0f; // Radius of the sphere
         const glm::vec3 home_eye = glm::vec3(0.0f, 0.0f, 500.0f);
@@ -194,7 +143,7 @@ int main() {
 
         glm::mat4 view = glm::lookAt(eye, current_center, up);
         glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-        glm::mat4 modelB = glm::translate(glm::mat4(1.0f), glm::vec3(400.0f, 300.0f, 0));
+        glm::mat4 modelB = glm::translate(glm::mat4(1.0f), glm::vec3(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f, 0));
         glm::mat4 mvp = proj * view * model;
 
         // Render loop
@@ -272,6 +221,9 @@ int main() {
             current_center = eye + radius * glm::normalize(front); // Keep current_center on the sphere
             view = glm::lookAt(eye, current_center, up);
 
+            // Clear the color and depth buffer bits
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             renderer.Clear();
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -283,16 +235,8 @@ int main() {
             auto currentTime = std::chrono::high_resolution_clock::now();
             float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-            model = glm::rotate(glm::mat4(1.0f), time, glm::vec3(0.0f, 1.0f, 0.0f));
-            modelB = glm::rotate(glm::mat4(1.0f), time, glm::vec3(1.0f, 0.0f, 0.0f));
-
-            mvp = proj * view * model;
-            shader.SetUniformMat4f("u_MVP", mvp);
-            renderer.Draw(va, ib, shader);
-
-            mvp = proj * view * modelB;
-            shader.SetUniformMat4f("u_MVP", mvp);
-            // renderer.Draw(va, ib, shader);
+            renderer.Draw(cube, shader, proj, view);
+            renderer.Draw(cube2, shader, proj, view);
 
             if (r > 1.0f) {
                 increment = -0.01f;
