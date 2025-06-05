@@ -4,9 +4,11 @@
 #include "VertexBufferLayout.h"
 #include "glm/gtc/matrix_transform.hpp"
 
+static glm::uint CUBES = 2; // 0 represents draw normally, 1 represents background
 Cube::Cube() 
-    : m_VBO(positions, sizeof(positions)),
-      m_IBO(indices, sizeof(indices) / sizeof(unsigned int)) 
+    : m_VBO(positions, sizeof(positions))
+    , m_IBO(indices, sizeof(indices) / sizeof(unsigned int)) 
+    , id(CUBES++)
 {
     VertexBufferLayout layout;
     layout.Push<float>(3); // position
@@ -16,6 +18,10 @@ Cube::Cube()
 }
 
 Cube::~Cube() {}
+
+glm::uint Cube::GetId() const {
+    return id;
+}
 
 void Cube::Draw() const {
     m_VA.Bind();

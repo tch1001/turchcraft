@@ -73,15 +73,17 @@ class Cube {
 public:
     Cube();
     ~Cube();
+    [[nodiscard]] glm::uint GetId() const;
     void Draw() const;
     void SetPosition(const glm::vec3& position);
     void SetRotation(const glm::vec3& rotation);
-    glm::mat4 GetModelMatrix() const;
+    [[nodiscard]] glm::mat4 GetModelMatrix() const;
 private:
     VertexArray m_VA;
     VertexBuffer m_VBO;
     IndexBuffer m_IBO;
     glm::vec3 position;
     glm::vec3 rotation;
+    glm::uint id;
 };
 

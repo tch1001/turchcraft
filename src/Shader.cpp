@@ -37,6 +37,14 @@ int Shader::GetUniformLocation(const std::string& name) {
     return location;
 }
 
+void Shader::SetUniform1ui(const std::string& name, unsigned int value) {
+    int location = GetUniformLocation(name);
+    if (location == -1) {
+        std::cerr << "Warning: uniform '" << name << "' doesn't exist in 1ui!" << std::endl;
+    }
+    GLCall(glUniform1ui(location, value));
+}
+
 void Shader::SetUniform1i(const std::string& name, int value) {
     int location = GetUniformLocation(name);
     if (location == -1) {

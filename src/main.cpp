@@ -99,6 +99,38 @@ int main() {
     std::cout << "GLFW Version: " << glfwGetVersionString() << std::endl;
     std::cout << "GLAD Version: " << GLVersion.major << "." << GLVersion.minor << std::endl;
 
+    // Create a framebuffer for mouse selection
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    // generate picking texture
+    GLuint textureColorBuffer;
+    glGenTextures(1, &textureColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+    GLuint depthTexture;
+    GLCall(glGenTextures(1, &depthTexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, depthTexture));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0));
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+        exit(1);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     {
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
         GLCall(glEnable(GL_BLEND));
@@ -111,7 +143,9 @@ int main() {
         cube2.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
         const std::string vertexShaderPath = std::format("{}/res/shaders/Vertex.shader", PROJECT_SOURCE_DIR);
         const std::string fragmentShaderPath = std::format("{}/res/shaders/Fragment.shader", PROJECT_SOURCE_DIR);
+        const std::string pickingFragmentShaderPath = std::format("{}/res/shaders/PickingFragment.shader", PROJECT_SOURCE_DIR);
         Shader shader(vertexShaderPath, fragmentShaderPath);
+        Shader pickingShader(vertexShaderPath, pickingFragmentShaderPath);
 
         Texture texture(std::format("{}/res/textures/texture.png", PROJECT_SOURCE_DIR));
         shader.Bind();
@@ -156,11 +190,32 @@ int main() {
                 glfwSetWindowShouldClose(window, true);
             }
 
+            // Bind the framebuffer for mouse selection
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            // Render the scene to the framebuffer
+            pickingShader.Bind();
+            pickingShader.SetUniform1ui("u_Id", cube.GetId());
+            renderer.Draw(cube, pickingShader, proj, view);
+
+            pickingShader.Bind();
+            pickingShader.SetUniform1ui("u_Id", cube2.GetId());
+            renderer.Draw(cube2, pickingShader, proj, view);
+
+            // Read the pixel under the mouse cursor
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            std::cout << xpos << ", " << ypos << " ";
+            unsigned int pixelData[3];
+            glReadPixels(static_cast<int>(xpos), WINDOW_HEIGHT - static_cast<int>(ypos), 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &pixelData);
+            std::cout << "Pixel data: " << pixelData[0] << ", " << pixelData[1] << ", " << pixelData[2] << std::endl;
+
+            // Unbind the framebuffer
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
             // Mouse dragging for rotation
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-                double xpos, ypos;
-                glfwGetCursorPos(window, &xpos, &ypos);
-
                 if (firstMouse) {
                     lastX = xpos;
                     lastY = ypos;
