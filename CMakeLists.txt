@@ -22,6 +22,10 @@ add_executable(OpenGL_GLFW_Sample
     src/Cube.cpp
     ${IMGUI_SOURCES}
     src/main.cpp
+        src/Engine.cpp
+        src/Engine.h
+        src/Window.cpp
+        src/Window.h
 )
 
 set_target_properties(OpenGL_GLFW_Sample PROPERTIES

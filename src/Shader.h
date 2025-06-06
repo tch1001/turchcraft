@@ -15,7 +15,12 @@ private:
     unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
     int GetUniformLocation(const std::string& name);
 public:
+    Shader();
     Shader(const std::string& vertexShaderFilePath, const std::string& fragmentShaderFilePath);
+    Shader(const Shader&) = delete; // cannot copy a shader
+    Shader& operator=(const Shader&) = delete;
+    Shader(Shader&& other) noexcept; // but can move
+    Shader& operator=(Shader&& other) noexcept;
     ~Shader();
 
     void Bind() const;

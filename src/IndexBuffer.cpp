@@ -16,6 +16,32 @@ IndexBuffer::~IndexBuffer()
     GLCall(glDeleteBuffers(1, &m_RendererID));
 }
 
+// Delete copy constructor and copy assignment operator
+
+// Implement move constructor
+IndexBuffer::IndexBuffer(IndexBuffer&& other) noexcept
+    : m_RendererID(other.m_RendererID), m_Count(other.m_Count)
+{
+    other.m_RendererID = 0;
+    other.m_Count = 0;
+}
+
+// Implement move assignment operator
+IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other) noexcept
+{
+    if (this != &other)
+    {
+        GLCall(glDeleteBuffers(1, &m_RendererID));
+
+        m_RendererID = other.m_RendererID;
+        m_Count = other.m_Count;
+
+        other.m_RendererID = 0;
+        other.m_Count = 0;
+    }
+    return *this;
+}
+
 void IndexBuffer::Bind() const
 {
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID));

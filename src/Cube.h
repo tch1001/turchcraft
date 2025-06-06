@@ -72,6 +72,10 @@
 class Cube {
 public:
     Cube();
+    Cube(const Cube&) = delete;
+    Cube& operator=(const Cube&) = delete;
+    Cube(Cube&&) = default;
+    Cube& operator=(Cube&&) = default;
     ~Cube();
     [[nodiscard]] glm::uint GetId() const;
     void Draw() const;

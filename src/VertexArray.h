@@ -11,6 +11,11 @@ private:
 public:
     VertexArray();
     ~VertexArray();
+
+    VertexArray(VertexArray &&other) noexcept;
+
+    VertexArray &operator=(VertexArray &&other) noexcept;
+
     void AddBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
     void Bind() const;
     void Unbind() const;

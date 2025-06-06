@@ -13,6 +13,23 @@ VertexBuffer::~VertexBuffer()
     GLCall(glDeleteBuffers(1, &m_RendererID));
 }
 
+VertexBuffer::VertexBuffer(VertexBuffer&& other) noexcept
+    : m_RendererID(other.m_RendererID)
+{
+    other.m_RendererID = 0;
+}
+
+VertexBuffer& VertexBuffer::operator=(VertexBuffer&& other) noexcept
+{
+    if (this != &other)
+    {
+        GLCall(glDeleteBuffers(1, &m_RendererID));
+        m_RendererID = other.m_RendererID;
+        other.m_RendererID = 0;
+    }
+    return *this;
+}
+
 void VertexBuffer::Bind() const
 {
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID));

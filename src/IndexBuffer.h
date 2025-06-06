@@ -9,6 +9,13 @@ public:
     IndexBuffer(const unsigned int* data, unsigned int count);
     ~IndexBuffer();
 
+    IndexBuffer(const IndexBuffer&) = delete;
+    IndexBuffer &operator=(const IndexBuffer&) = delete;
+
+    IndexBuffer(IndexBuffer &&other) noexcept;
+
+    IndexBuffer &operator=(IndexBuffer &&other) noexcept;
+
     void Bind() const;
     void Unbind() const;
 
