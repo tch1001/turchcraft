@@ -6,6 +6,10 @@
 
 
     const float positions[] = {
+            // -0.5f, -0.5f,
+            // 0.5f, -0.5f,
+            // 0.5f, 0.5f,
+            // -0.5f, 0.5f,
             // Front face               // Texture coordinates      // vertex Color
             -50.0f, -50.0f,  50.0f,     0.0f, 0.0f,                 0.3f, 0.7f, 0.2f,
              50.0f, -50.0f,  50.0f,     1.0f, 0.0f,                 0.6f, 0.1f, 0.8f,
@@ -82,7 +86,7 @@ public:
     void SetPosition(const glm::vec3& position);
     void SetRotation(const glm::vec3& rotation);
     [[nodiscard]] glm::mat4 GetModelMatrix() const;
-private:
+// private:
     VertexArray m_VA;
     VertexBuffer m_VBO;
     IndexBuffer m_IBO;

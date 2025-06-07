@@ -30,8 +30,8 @@ public:
     void AddObject(Cube &&cube);
 
     std::vector<Cube> objects;
-private:
     Shader graphicsShader;
+private:
     bool firstMouse = true;
     double windowWidth, windowHeight;
     double lastX, lastY;

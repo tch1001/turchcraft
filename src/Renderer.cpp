@@ -17,7 +17,7 @@ bool GLLogCall(const char* function, const char* file, int line) {
 }
 
 void Renderer::Clear() const {
-    GLCall(glClear(GL_COLOR_BUFFER_BIT));
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();

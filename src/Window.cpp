@@ -27,9 +27,9 @@ Window::Window(int width, int height, const char *title)
     glfwSetErrorCallback([](int error, const char *description) {
         std::cerr << "GLFW error: " <<  description << std::endl;
     });
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!window) {
         glfwTerminate();
@@ -47,9 +47,9 @@ Window::Window(int width, int height, const char *title)
 }
 
 Window::~Window() {
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    // ImGui_ImplOpenGL3_Shutdown();
+    // ImGui_ImplGlfw_Shutdown();
+    // ImGui::DestroyContext();
     glfwTerminate();
 }
 
@@ -69,33 +69,30 @@ void Window::InitOtherStuff() {
     GLCall(glEnable(GL_DEPTH_TEST));
     GLCall(glDepthFunc(GL_LESS));
 
-
     // Set the viewport
     GLCall(glViewport(0, 0, width_, height_));
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GLCall(glEnable(GL_BLEND));
+
+    GLCall(glClearColor(0.0f, 0.0f, 0.4f, 0.0f));
 }
 
 void Window::InitPicking(const std::string &vertexShaderPath, const std::string &fragmentShaderPath) {
     pickingShader = Shader{vertexShaderPath, fragmentShaderPath};
 
-    unsigned int framebuffer, textureColorBuffer, depthTexture;
-    GLCall(glGenFramebuffers(1, &framebuffer));
-    framebuffer_ = framebuffer;
+    GLCall(glGenFramebuffers(1, &framebuffer_));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_));
 
-    GLCall(glGenTextures(1, &textureColorBuffer));
-    textureColorBuffer_ = textureColorBuffer;
+    GLCall(glGenTextures(1, &textureColorBuffer_));
     GLCall(glBindTexture(GL_TEXTURE_2D, textureColorBuffer_));
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, width_, height_, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer_, 0));
 
-    GLCall(glGenTextures(1, &depthTexture));
-    depthTexture_ = depthTexture;
+    GLCall(glGenTextures(1, &depthTexture_));
     GLCall(glBindTexture(GL_TEXTURE_2D, depthTexture_));
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture_, 0));

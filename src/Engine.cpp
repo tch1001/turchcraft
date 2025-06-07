@@ -96,8 +96,7 @@ glm::mat4 Engine::GetViewMatrix() {
 }
 
 void Engine::RenderObjects(Renderer& renderer) {
-    graphicsShader.Bind();
-    graphicsShader.SetUniform4f("u_Color", 0.1f, 0.3f, 0.8f, 1.0f);
+    // graphicsShader.SetUniform4f("u_Color", 0.1f, 0.3f, 0.8f, 1.0f);
 
     for (auto const& obj : objects) {
         renderer.Draw(obj, graphicsShader, proj, GetViewMatrix());

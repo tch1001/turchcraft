@@ -31,7 +31,9 @@ Shader& Shader::operator=(Shader &&other) noexcept {
 }
 
 Shader::~Shader() {
-    if (m_RendererID != 0) GLCall(glDeleteProgram(m_RendererID));
+    if (m_RendererID != 0) {
+        GLCall(glDeleteProgram(m_RendererID));
+    }
 }
 
 void Shader::Bind() const {
