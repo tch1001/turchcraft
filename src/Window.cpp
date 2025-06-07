@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "Cube.h"
 #include "Engine.h"
 #include "Renderer.h"
 #include "glad/glad.h"
@@ -30,6 +31,8 @@ Window::Window(int width, int height, const char *title)
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_DEPTH_BITS, 24);
+    // glfwWindowHint(GLFW_STENCIL_BITS, 8);
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!window) {
         glfwTerminate();
@@ -83,18 +86,19 @@ void Window::InitPicking(const std::string &vertexShaderPath, const std::string 
     pickingShader = Shader{vertexShaderPath, fragmentShaderPath};
 
     GLCall(glGenFramebuffers(1, &framebuffer_));
+    // assert(framebuffer_ == 1);
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_));
 
     GLCall(glGenTextures(1, &textureColorBuffer_));
     GLCall(glBindTexture(GL_TEXTURE_2D, textureColorBuffer_));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, width_, height_, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, width_, height_, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, nullptr));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer_, 0));
 
     GLCall(glGenTextures(1, &depthTexture_));
     GLCall(glBindTexture(GL_TEXTURE_2D, depthTexture_));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture_, 0));
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -109,34 +113,39 @@ void Window::InitPicking(const std::string &vertexShaderPath, const std::string 
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
-void Window::PickingPhase(Engine& engine, Renderer& renderer) {
+std::tuple<unsigned, unsigned, unsigned> Window::PickingPhase(Engine &engine, Renderer &renderer) {
     // Bind the framebuffer for mouse selection
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_));
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     for (const Cube &obj : engine.objects) {
-        pickingShader.Bind();
-        pickingShader.SetUniform1ui("u_Id", obj.GetId());
-        renderer.Draw(obj, pickingShader, engine.proj1(), engine.GetViewMatrix());
+        obj.DrawForPicking(pickingShader, engine);
     }
 
     // Read the pixel under the mouse cursor
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
-    unsigned int pixelData[3];
-    GLCall(glReadPixels(static_cast<int>(xpos), width_ - static_cast<int>(ypos), 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT,
+    unsigned int pixelData[3] = {123,123,123};
+    // GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    // GLCall(glReadBuffer(GL_FRONT));
+    // GLCall(glFinish());
+    GLCall(glReadPixels(static_cast<int>(xpos), height_ - static_cast<int>(ypos), 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT,
                  &pixelData));
-    std::cout << "Pixel data: " << pixelData[0] << ", " << pixelData[1] << ", " << pixelData[2] << std::endl;
+    // std::cout << "Pixel data: " << xpos << " " << ypos << ": " << pixelData[0] << ", " << pixelData[1] << ", " << pixelData[2] << std::endl;
 
     // Unbind the framebuffer
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-
     // Clear the color and depth buffer bits
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    return {pixelData[0], pixelData[1], pixelData[2]};
 }
 
 bool Window::GetMouseButton() const {
     return glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+}
+
+int Window::GetMouseRightButton() {
+    return glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
 }
 
 void Window::ImGuiRender() {

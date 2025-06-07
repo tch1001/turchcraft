@@ -23,7 +23,7 @@ public:
 
     void InitPicking(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
 
-    void PickingPhase(Engine &engine, Renderer &renderer);
+    std::tuple<unsigned, unsigned, unsigned> PickingPhase(Engine &engine, Renderer &renderer);
 
     bool GetMouseButton() const;
 
@@ -39,8 +39,10 @@ public:
 
     void SetWindowShouldClose(bool cond);
 
+    int GetMouseRightButton();
+
     GLFWwindow* window;
-private:
+// private:
 
     int width_, height_;
     GLuint framebuffer_;

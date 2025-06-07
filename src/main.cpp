@@ -21,17 +21,49 @@
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
 
-void framebuffer_size_callback_2(GLFWwindow *window, int width, int height) {
-    GLCall(glViewport(0, 0, width, height));
-}
+
 int main() {
     const std::string vertexShaderPath = std::format("{}/res/shaders/Vertex.shader", PROJECT_SOURCE_DIR);
     const std::string fragmentShaderPath = std::format("{}/res/shaders/Fragment.shader", PROJECT_SOURCE_DIR);
     const std::string pickingFragmentShaderPath = std::format("{}/res/shaders/PickingFragment.shader", PROJECT_SOURCE_DIR);
     Window window{WINDOW_WIDTH, WINDOW_HEIGHT, "TurchCraft"};
+    // Create a framebuffer for mouse selection
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    // generate picking texture
+    GLuint textureColorBuffer;
+    glGenTextures(1, &textureColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+    GLuint depthTexture;
+    GLCall(glGenTextures(1, &depthTexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, depthTexture));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0));
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+        exit(1);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    window.InitPicking(vertexShaderPath, pickingFragmentShaderPath);
+    window.framebuffer_ = framebuffer;
+    window.textureColorBuffer_ = textureColorBuffer;
+    window.depthTexture_ = depthTexture;
     window.InitImGui();
     window.InitOtherStuff();
-    window.InitPicking(vertexShaderPath, pickingFragmentShaderPath);
 
     Engine::Config config{
         .vertexShaderPath = vertexShaderPath,
@@ -52,67 +84,54 @@ int main() {
         Cube cube{};
         cube.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         cube.SetRotation(glm::vec3(0.0f, 30.0f, 0.0f));
+        engine.AddObject(std::move(cube));
 
         Cube cube2{};
         cube2.SetPosition(glm::vec3(0.0f, 100.0f, 0.0f));
         cube2.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-
-        engine.AddObject(std::move(cube));
         engine.AddObject(std::move(cube2));
 
         // Render loop
         while (!window.ShouldClose()) {
             renderer.Clear();
-
-            window.PickingPhase(engine, renderer);
+            auto [pick, cubeSelected, faceSelected] = window.PickingPhase(engine, renderer);
             engine.ProcessInputs(window);
-            engine.UserAction(window);
+            int rightClick = engine.UserAction(window);
+            std::cout << rightClick << " " << faceSelected << std::endl;
             engine.RenderObjects(renderer);
-            // Draw a simple triangle
-            // glClear(GL_COLOR_BUFFER_BIT);
-            // glBegin(GL_TRIANGLES);
-            // glVertex2f(-0.5f, -0.5f);
-            // glVertex2f(0.5f, -0.5f);
-            // glVertex2f(0.0f, 0.5f);
-            // glEnd();
-            // glfwSwapBuffers(window.window);
+            if (rightClick != 0 && pick == 1) {
+                for (const Cube& c : engine.objects) {
+                    if (c.GetId() == cubeSelected) {
+                        if (rightClick == 1) {
+                            Cube newCube{};
+                            glm::vec3 newPosition = c.position;
+                            switch (faceSelected) {
+                                case 4: newPosition += glm::vec3(100.0f, 0.f, 0.0);
+                                    break;
+                                case 3: newPosition += glm::vec3(-100.0f, 0.f, 0.0);
+                                    break;
+                                case 1: newPosition += glm::vec3(0.0f, 0.0f, 100.f);
+                                    break;
+                                case 2: newPosition += glm::vec3(0.0f, 0.0f, -100.f);
+                                    break;
+                                case 5: newPosition += glm::vec3(0.0f, 100.f, 0.0);
+                                    break;
+                                case 6: newPosition += glm::vec3(0.0f, -100.f, 0.0);
+                                    break;
+                            }
+                            newCube.SetPosition(newPosition);
+                            newCube.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
+                            engine.AddObject(std::move(newCube));
+                        } else {
+                            std::erase(engine.objects, c);
+                            break;
+                        }
+                    }
+                }
+            }
 
             window.ImGuiRender();
             window.SwapBuffersAndPollEvents();
-            continue;
-            float positions[6] = {
-                -0.5f, -0.5f,
-                0.5f, -0.5f,
-                0.0f, 0.5f,
-            };
-
-            unsigned int buffer;
-            GLCall(glGenBuffers(1, &buffer)); // create a vertex buffer
-            GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer)); // bind
-            GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, positions, GL_STATIC_DRAW)); // fill
-
-            GLCall(glEnableVertexAttribArray(0));
-            GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
-
-            Shader myShader = Shader(vertexShaderPath, fragmentShaderPath);
-            myShader.Bind();
-            GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-            /* Loop until the user closes the window */
-            while (!glfwWindowShouldClose(window.window))
-            {
-                /* Render here */
-                GLCall(glClear(GL_COLOR_BUFFER_BIT));
-
-                GLCall(glDrawArrays(GL_TRIANGLES, 0, 3));
-
-                /* Swap front and back buffers */
-                glfwSwapBuffers(window.window);
-
-                /* Poll for and process events */
-                glfwPollEvents();
-            }
-
         }
     }
 

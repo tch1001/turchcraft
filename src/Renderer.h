@@ -10,7 +10,6 @@
 #include "VertexArray.h"
 #include "IndexBuffer.h"
 #include "Shader.h"
-#include "Cube.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
@@ -19,6 +18,8 @@
 
 void GLClearError();
 bool GLLogCall(const char* function, const char* file, int line);
+
+class Cube;
 
 class Renderer {
 public:

@@ -20,7 +20,7 @@ public:
     explicit Engine(const Config& config);
     ~Engine();
 
-    void UserAction(Window &window);
+    int UserAction(Window &window);
 
     glm::mat4 GetViewMatrix();
     void ProcessInputs(Window &window);
@@ -33,6 +33,7 @@ public:
     Shader graphicsShader;
 private:
     bool firstMouse = true;
+    bool firstRightMouse = true;
     double windowWidth, windowHeight;
     double lastX, lastY;
 

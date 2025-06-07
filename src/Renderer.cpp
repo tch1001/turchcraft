@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include "Cube.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -31,6 +32,8 @@ void Renderer::Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& 
 
     GLCall(glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr));
 }
+
+class Cube;
 
 void Renderer::Draw(const Cube& c, Shader& shader, const glm::mat4& proj, const glm::mat4& view) {
     glm::mat4 model = c.GetModelMatrix();

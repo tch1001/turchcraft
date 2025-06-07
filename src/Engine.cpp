@@ -7,6 +7,7 @@
 #include "Window.h"
 #include "GLFW/glfw3.h"
 #include "glm/ext/matrix_transform.hpp"
+#include "Cube.h"
 
 Engine::Engine(const Config &config)
     : graphicsShader{config.vertexShaderPath, config.graphicsFragmentShaderPath}
@@ -19,7 +20,16 @@ Engine::Engine(const Config &config)
 
 Engine::~Engine() {}
 
-void Engine::UserAction(Window& window) {
+int Engine::UserAction(Window &window) {
+    if (window.GetMouseRightButton() == GLFW_PRESS) {
+        if (firstRightMouse) {
+            firstRightMouse = false;
+            return 1;
+        }
+    } else {
+        firstRightMouse = true;
+    }
+    bool leftClick = false;
     // Mouse dragging for rotation
     if (window.GetMouseButton() == GLFW_PRESS) {
 
@@ -28,6 +38,7 @@ void Engine::UserAction(Window& window) {
             lastX = xPos;
             lastY = yPos;
             firstMouse = false;
+            leftClick = true;
         }
 
         float xoffset = xPos - lastX;
@@ -81,6 +92,7 @@ void Engine::UserAction(Window& window) {
         pitch = 0.0f;
     }
     current_center = eye + radius * glm::normalize(front); // Keep current_center on the sphere
+    return leftClick ? 2 : 0;
 }
 
 void Engine::ProcessInputs(Window& window) {

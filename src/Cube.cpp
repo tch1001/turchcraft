@@ -14,7 +14,18 @@ Cube::Cube()
     layout.Push<float>(3); // position
     layout.Push<float>(2); // texture
     layout.Push<float>(3); // color
+    layout.Push<float>(1); // face
     m_VA.AddBuffer(m_VBO, layout);
+}
+
+void Cube::DrawForPicking(Shader& pickingShader, Engine &engine) const {
+    pickingShader.Bind();
+    pickingShader.SetUniform1ui("u_Id", GetId());
+    glm::mat4 model = GetModelMatrix();
+
+    glm::mat4 mvp = engine.proj1() * engine.GetViewMatrix() * model;
+    pickingShader.SetUniformMat4f("u_MVP", mvp);
+    Draw();
 }
 
 Cube::~Cube() {}
@@ -44,4 +55,8 @@ glm::mat4 Cube::GetModelMatrix() const {
     model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
     return model;
+}
+
+bool Cube::operator==(const Cube& rhs) const {
+    return this->id == rhs.id;
 }
